@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מתכנן הטיולים שלי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --blue-900:#0b2a5b; --blue-700:#1456b8; --blue-600:#1e6fe0; --blue-500:#3b8bf5;
+  --blue-100:#e3eefd; --blue-50:#f2f7ff; --line:#d6e4f7; --text:#17233a; --muted:#6a7b95;
+  --white:#fff; --danger:#d64545; --ok:#1c9a5b; --star:#f5b400;
+  --radius:14px; --shadow:0 4px 18px rgba(20,86,184,.10);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Heebo',system-ui,Arial,sans-serif;background:var(--blue-50);color:var(--text);line-height:1.5}
+button,input,select,textarea{font-family:inherit;font-size:1rem}
+.hidden{display:none!important}
+
+/* ---------- Header ---------- */
+.topbar{background:linear-gradient(135deg,var(--blue-900),var(--blue-700));color:#fff;padding:14px 20px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+.topbar-inner{max-width:1100px;margin:auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.brand{font-weight:800;font-size:1.25rem;margin-inline-end:8px;white-space:nowrap}
+.topbar select{padding:8px 12px;border-radius:10px;border:none;min-width:180px;background:#fff;color:var(--text);font-weight:500}
+.topbar .sp{flex:1}
+.tbtn{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.28);padding:7px 12px;border-radius:10px;cursor:pointer;font-size:.9rem;white-space:nowrap;transition:.15s}
+.tbtn:hover{background:rgba(255,255,255,.26)}
+.tbtn.danger:hover{background:var(--danger);border-color:var(--danger)}
+
+main{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
+
+/* ---------- Hero ---------- */
+.hero{display:grid;grid-template-columns:1fr auto auto;gap:14px;margin-bottom:18px}
+.card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line)}
+.hero-main{padding:20px 22px}
+.hero-main h1{margin:0 0 4px;font-size:1.7rem;color:var(--blue-900)}
+.hero-main .sub{color:var(--muted)}
+.widget{padding:16px 22px;text-align:center;min-width:170px;display:flex;flex-direction:column;justify-content:center}
+.widget .big{font-size:2.3rem;font-weight:800;color:var(--blue-600);line-height:1.1}
+.widget .lbl{color:var(--muted);font-size:.9rem}
+.widget .ico{font-size:2.2rem;line-height:1}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px}
+.tab{background:#fff;border:1px solid var(--line);color:var(--blue-700);padding:10px 16px;border-radius:12px;cursor:pointer;font-weight:500;white-space:nowrap;transition:.15s}
+.tab:hover{background:var(--blue-100)}
+.tab.active{background:var(--blue-600);color:#fff;border-color:var(--blue-600);box-shadow:0 3px 10px rgba(30,111,224,.35)}
+
+/* ---------- Common ---------- */
+.panel{padding:20px}
+.panel-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.panel-head h2{margin:0;font-size:1.25rem;color:var(--blue-900)}
+.btn{background:var(--blue-600);color:#fff;border:none;padding:9px 16px;border-radius:10px;cursor:pointer;font-weight:500;transition:.15s}
+.btn:hover{background:var(--blue-700)}
+.btn.ghost{background:var(--blue-100);color:var(--blue-700)}
+.btn.ghost:hover{background:#cfe0fa}
+.btn.small{padding:5px 10px;font-size:.85rem}
+.iconbtn{background:none;border:none;cursor:pointer;font-size:1.05rem;padding:4px 6px;border-radius:8px;opacity:.75}
+.iconbtn:hover{opacity:1;background:var(--blue-100)}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+.empty .big{font-size:2.6rem}
+input,select,textarea{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff;color:var(--text);width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--blue-500);border-color:var(--blue-500)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.row>*{flex:1;min-width:130px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.chip{border:1px solid var(--line);background:#fff;padding:5px 12px;border-radius:999px;cursor:pointer;font-size:.9rem;color:var(--blue-700)}
+.chip.active{background:var(--blue-600);color:#fff;border-color:var(--blue-600)}
+
+/* ---------- Itinerary ---------- */
+.day{margin-bottom:22px}
+.day-head{display:flex;align-items:baseline;gap:10px;border-bottom:2px solid var(--blue-100);padding-bottom:6px;margin-bottom:10px}
+.day-head .n{background:var(--blue-600);color:#fff;border-radius:8px;padding:2px 10px;font-weight:700;font-size:.9rem}
+.day-head .d{font-weight:700;color:var(--blue-900);font-size:1.05rem}
+.act{display:flex;gap:12px;background:var(--blue-50);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.act .time{min-width:88px;font-weight:700;color:var(--blue-700);font-size:.95rem}
+.act .emoji{font-size:1.6rem}
+.act .body{flex:1}
+.act .title{font-weight:700;font-size:1.05rem}
+.act .meta{color:var(--muted);font-size:.9rem}
+.act .price{font-weight:700;color:var(--blue-700);white-space:nowrap}
+.act .notes{margin-top:4px;font-size:.92rem;background:#fff;border-radius:8px;padding:6px 10px;border:1px dashed var(--line)}
+.act .btns{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+
+/* ---------- Lists ---------- */
+.item{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--blue-50)}
+.item .body{flex:1}
+.item .title{font-weight:700}
+.item .meta{color:var(--muted);font-size:.9rem}
+.badge{display:inline-block;background:var(--blue-100);color:var(--blue-700);border-radius:999px;padding:1px 10px;font-size:.8rem;margin-inline-start:6px}
+a{color:var(--blue-600)}
+
+/* ---------- Map ---------- */
+#map{height:520px;border-radius:12px;border:1px solid var(--line);z-index:1}
+.pin{font-size:24px;text-align:center;line-height:28px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.map-status{color:var(--muted);font-size:.9rem;margin-top:8px;min-height:1.3em}
+
+/* ---------- Budget ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--blue-50);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.stat .v{font-size:1.6rem;font-weight:800;color:var(--blue-700)}
+.stat .v.neg{color:var(--danger)}
+.stat .l{color:var(--muted);font-size:.9rem}
+.bar{height:12px;background:var(--blue-100);border-radius:999px;overflow:hidden;margin-bottom:18px}
+.bar>div{height:100%;background:linear-gradient(90deg,var(--blue-500),var(--blue-700));transition:.3s}
+.bar.over>div{background:var(--danger)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.sect-title{font-weight:700;color:var(--blue-900);margin:18px 0 8px;font-size:1.05rem}
+table{border-collapse:collapse;width:100%}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:center}
+th{background:var(--blue-100);color:var(--blue-900);font-weight:700}
+.fx-box{background:var(--blue-50);border:1px solid var(--line);border-radius:12px;padding:14px}
+.fx-line{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.fx-line label{min-width:90px;font-weight:500}
+
+/* ---------- Packing ---------- */
+.pack-cat{margin-bottom:16px}
+.pack-cat h3{margin:0 0 6px;font-size:1rem;color:var(--blue-700)}
+.pack-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;background:var(--blue-50);border:1px solid var(--line);margin-bottom:5px}
+.pack-item input[type=checkbox]{width:20px;height:20px;accent-color:var(--blue-600)}
+.pack-item .t{flex:1}
+.pack-item.done .t{text-decoration:line-through;color:#9aa8bd}
+
+/* ---------- Modal ---------- */
+.modal{position:fixed;inset:0;background:rgba(11,42,91,.5);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
+.modal .box{background:#fff;border-radius:16px;padding:22px;width:100%;max-width:560px;max-height:92vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.modal h3{margin:0 0 14px;color:var(--blue-900)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:.92rem;font-weight:500}
+.fields label.full{grid-column:1/-1}
+.modal-actions{display:flex;gap:10px;justify-content:flex-start;margin-top:18px}
+
+.print-head{display:none}
+.welcome{padding:50px 20px;text-align:center}
+.welcome .big{font-size:3.5rem}
+.welcome h1{color:var(--blue-900)}
+
+@media(max-width:760px){
+  .hero{grid-template-columns:1fr 1fr}.hero-main{grid-column:1/-1}
+  .two{grid-template-columns:1fr}
+  .fields{grid-template-columns:1fr}
+  .act{flex-wrap:wrap}.act .time{min-width:100%}
+  #map{height:380px}
+}
+
+/* ---------- Print ---------- */
+@media print{
+  body{background:#fff}
+  .topbar,.hero,.tabs,.no-print,.btn,.iconbtn,#modal{display:none!important}
+  main{padding:0;max-width:none}
+  section.tabpane{display:none!important}
+  section#pane-itinerary{display:block!important}
+  .card{box-shadow:none;border:none}
+  .panel{padding:0}
+  .act{break-inside:avoid;background:#fff}
+  .print-head{display:block;margin-bottom:14px;border-bottom:3px solid var(--blue-600);padding-bottom:8px}
+  .print-head h1{margin:0;color:var(--blue-900)}
+}
+
+/* ---------- Login & cloud ---------- */
+.login{position:fixed;inset:0;z-index:300;background:linear-gradient(135deg,var(--blue-900),var(--blue-600));display:flex;align-items:center;justify-content:center;padding:16px}
+.login-card{background:#fff;border-radius:18px;padding:34px 30px;max-width:420px;width:100%;text-align:center;box-shadow:0 14px 50px rgba(0,0,0,.35)}
+.login-card h1{margin:6px 0 10px;color:var(--blue-900)}
+.login-msg{color:var(--muted);min-height:2.6em;margin:0 0 14px}
+.userbox{display:flex;align-items:center;gap:8px}
+.cloud{font-size:.85rem;opacity:.95}
+@media(max-width:760px){#userEmail{display:none}}
+</style>
+</head>
+<body>
+
+<header class="topbar no-print">
+  <div class="topbar-inner">
+    <div class="brand">✈️ מתכנן הטיולים</div>
+    <select id="tripSelect" onchange="switchTrip(this.value)" aria-label="בחירת טיול"></select>
+    <button class="tbtn" onclick="newTrip()">➕ טיול חדש</button>
+    <button class="tbtn" onclick="editTrip()">✏️ עריכה</button>
+    <button class="tbtn danger" onclick="deleteTrip()">🗑️ מחיקה</button>
+    <span class="sp"></span>
+    <button class="tbtn" onclick="exportData()">⬇️ ייצוא גיבוי</button>
+    <button class="tbtn" onclick="document.getElementById('importFile').click()">⬆️ ייבוא גיבוי</button>
+    <input type="file" id="importFile" accept=".json,application/json" class="hidden" onchange="importData(this)">
+    <span id="userBox" class="userbox hidden">
+      <span id="cloudStatus" class="cloud"></span>
+      <span id="userEmail" class="cloud" dir="ltr"></span>
+      <button class="tbtn" onclick="Cloud.logout()">יציאה</button>
+    </span>
+  </div>
+</header>
+
+<div id="login" class="login">
+  <div class="login-card">
+    <div style="font-size:3rem">✈️</div>
+    <h1>מתכנן הטיולים</h1>
+    <p id="loginMsg" class="login-msg">בודק התחברות…</p>
+    <button id="loginBtn" class="btn hidden" onclick="Cloud.login()">התחברות עם Google</button>
+    <div style="margin-top:14px"><button class="btn ghost small" onclick="Cloud.skip()">המשך ללא סנכרון (מקומי בלבד)</button></div>
+  </div>
+</div>
+
+<main id="app"></main>
+
+<div id="modal" class="modal hidden" onmousedown="if(event.target===this)closeModal()">
+  <div class="box">
+    <h3 id="mTitle"></h3>
+    <form id="mForm" onsubmit="submitModal(event)">
+      <div class="fields" id="mFields"></div>
+      <div class="modal-actions">
+        <button class="btn" type="submit">שמירה</button>
+        <button class="btn ghost" type="button" onclick="closeModal()">ביטול</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<datalist id="dlCurrency">
+  <option value="USD">דולר אמריקאי</option><option value="EUR">יורו</option><option value="GBP">לירה שטרלינג</option>
+  <option value="CHF">פרנק שווייצרי</option><option value="JPY">ין יפני</option><option value="THB">באט תאילנדי</option>
+  <option value="TRY">לירה טורקית</option><option value="CZK">קורונה צ'כית</option><option value="HUF">פורינט הונגרי</option>
+  <option value="PLN">זלוטי פולני</option><option value="GEL">לארי גאורגי</option><option value="AED">דירהם</option>
+  <option value="CAD">דולר קנדי</option><option value="AUD">דולר אוסטרלי</option><option value="RON">ליי רומני</option>
+  <option value="BGN">לב בולגרי</option><option value="MXN">פזו מקסיקני</option><option value="INR">רופי הודי</option>
+</datalist>
+<datalist id="dlPack"></datalist>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* =====================================================================
+   שכבת אחסון – כרגע localStorage.
+   בשלב הבא מחליפים רק את load/save כאן ב-Firebase (Firestore),
+   ושאר האפליקציה לא משתנה.
+   ===================================================================== */
+const Storage = {
+  KEY: 'tripPlannerV1',
+  load() { try { return JSON.parse(localStorage.getItem(this.KEY)); } catch { return null; } },
+  save(data) {
+    localStorage.setItem(this.KEY, JSON.stringify(data));      // עותק מקומי (מטמון)
+    if (window.Cloud) window.Cloud.queueSave(data);            // שמירה בענן (Firebase)
+  }
+};
+
+/* ---------------------------- עזרים ---------------------------- */
+const $ = s => document.querySelector(s);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const fmt = n => Math.round(n * 100) / 100 === Math.round(n) ? Math.round(n).toLocaleString('he-IL') : (Math.round(n * 100) / 100).toLocaleString('he-IL');
+const ils = n => '₪' + fmt(n);
+const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+const dateObj = s => new Date(s + 'T00:00:00');
+const fmtDate = s => s ? dateObj(s).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'ללא תאריך';
+const fmtShort = s => s ? dateObj(s).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+const dayDiff = (a, b) => Math.round((dateObj(b) - dateObj(a)) / 86400000);
+
+const CATS = [
+  { k: 'flight',    i: '✈️', l: 'טיסות' },
+  { k: 'lodging',   i: '🏨', l: 'לינה' },
+  { k: 'food',      i: '🍽️', l: 'אוכל' },
+  { k: 'attr',      i: '🎡', l: 'אטרקציות' },
+  { k: 'shop',      i: '🛍️', l: 'קניות' },
+  { k: 'transport', i: '🚌', l: 'תחבורה' },
+  { k: 'other',     i: '📌', l: 'אחר' }
+];
+const cat = k => CATS.find(c => c.k === k) || CATS[CATS.length - 1];
+const catOptions = CATS.map(c => [c.k, c.i + ' ' + c.l]);
+
+const DOC_CATS = [
+  { k: 'flight',  l: '✈️ טיסות ונסיעות' },
+  { k: 'hotel',   l: '🏨 מלונות ולינה' },
+  { k: 'car',     l: '🚗 רכב ותחבורה' },
+  { k: 'ticket',  l: '🎟️ כרטיסים ואטרקציות' },
+  { k: 'food',    l: '🍽️ מסעדות' },
+  { k: 'general', l: '📁 כללי' }
+];
+
+/* ---------------------------- מצב ---------------------------- */
+let S = Storage.load() || { trips: [], currentId: null };
+const UI = { tab: 'itinerary', docFilter: 'all', mapDay: 'all' };
+const cur = () => S.trips.find(t => t.id === S.currentId) || null;
+
+function save(rerender = true) { Storage.save(S); if (rerender) render(); }
+
+/* ---------------------------- מודאל ---------------------------- */
+let modalSave = null;
+function openForm(title, fields, vals, onSave) {
+  $('#mTitle').textContent = title;
+  $('#mFields').innerHTML = fields.map(f => {
+    const v = vals && vals[f.k] !== undefined ? vals[f.k] : (f.def !== undefined ? f.def : '');
+    let inp;
+    if (f.t === 'select') {
+      inp = `<select name="${f.k}">${f.o.map(o => `<option value="${esc(o[0])}" ${String(o[0]) === String(v) ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`;
+    } else if (f.t === 'textarea') {
+      inp = `<textarea name="${f.k}" rows="3" placeholder="${esc(f.p || '')}">${esc(v)}</textarea>`;
+    } else {
+      inp = `<input name="${f.k}" type="${f.t || 'text'}" value="${esc(v)}" ${f.req ? 'required' : ''} ${f.list ? `list="${f.list}"` : ''} ${f.t === 'number' ? 'step="any" min="0"' : ''} placeholder="${esc(f.p || '')}">`;
+    }
+    return `<label class="${f.full ? 'full' : ''}">${f.l}${f.req ? ' *' : ''}${inp}</label>`;
+  }).join('');
+  modalSave = onSave;
+  $('#modal').classList.remove('hidden');
+  const first = $('#mFields input,#mFields textarea,#mFields select'); if (first) first.focus();
+}
+function closeModal() { $('#modal').classList.add('hidden'); modalSave = null; }
+function submitModal(e) {
+  e.preventDefault();
+  const obj = {};
+  new FormData($('#mForm')).forEach((v, k) => obj[k] = typeof v === 'string' ? v.trim() : v);
+  const fn = modalSave; closeModal(); if (fn) fn(obj);
+}
+
+/* ---------------------------- ניהול טיולים ---------------------------- */
+const tripFields = [
+  { k: 'name', l: 'שם הטיול', req: true, full: true, p: 'למשל: פראג 2027' },
+  { k: 'dest', l: 'יעד', req: true, p: 'עיר, מדינה' },
+  { k: 'currency', l: 'מטבע זר (קוד)', req: true, list: 'dlCurrency', p: 'EUR' },
+  { k: 'start', l: 'תאריך התחלה', t: 'date', req: true },
+  { k: 'end', l: 'תאריך סיום', t: 'date', req: true },
+  { k: 'budget', l: 'תקציב כולל (₪)', t: 'number', full: true }
+];
+function newTrip() {
+  openForm('טיול חדש', tripFields, {}, v => {
+    const t = { id: uid(), name: v.name, dest: v.dest, start: v.start, end: v.end, budget: num(v.budget),
+      currency: (v.currency || 'USD').toUpperCase(), rate: 0, rateDate: 0,
+      activities: [], wishlist: [], expenses: [], docs: [], packing: [], journal: [] };
+    S.trips.push(t); S.currentId = t.id; UI.tab = 'itinerary'; save();
+  });
+}
+function editTrip() {
+  const t = cur(); if (!t) return;
+  openForm('עריכת הטיול', tripFields, t, v => {
+    const curChanged = (v.currency || '').toUpperCase() !== t.currency;
+    Object.assign(t, { name: v.name, dest: v.dest, start: v.start, end: v.end, budget: num(v.budget), currency: (v.currency || t.currency).toUpperCase() });
+    if (curChanged) { t.rate = 0; t.rateDate = 0; }
+    delete W[t.id]; save();
+  });
+}
+function deleteTrip() {
+  const t = cur(); if (!t) return;
+  if (!confirm(`למחוק את הטיול "${t.name}"? הפעולה אינה הפיכה.`)) return;
+  S.trips = S.trips.filter(x => x.id !== t.id);
+  S.currentId = S.trips.length ? S.trips[0].id : null; save();
+}
+function switchTrip(id) { S.currentId = id; save(); }
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `trips-backup-${todayStr()}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+}
+function importData(input) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d || !Array.isArray(d.trips)) throw new Error();
+      if (!confirm(`לייבא ${d.trips.length} טיולים מהקובץ? טיולים עם אותו מזהה יוחלפו, והשאר יישמרו.`)) return;
+      d.trips.forEach(t => { const i = S.trips.findIndex(x => x.id === t.id); if (i >= 0) S.trips[i] = t; else S.trips.push(t); });
+      if (!cur() && S.trips.length) S.currentId = d.currentId || S.trips[0].id;
+      save();
+    } catch { alert('הקובץ אינו קובץ גיבוי תקין.'); }
+    input.value = '';
+  };
+  r.readAsText(f);
+}
+
+/* ---------------------------- מזג אוויר ---------------------------- */
+const W = {};
+const wIcon = c => c === 0 ? '☀️' : c <= 2 ? '🌤️' : c === 3 ? '☁️' : c <= 48 ? '🌫️' : c <= 67 ? '🌧️' : c <= 77 ? '❄️' : c <= 82 ? '🌦️' : '⛈️';
+async function loadWeather(t) {
+  if (!t.dest || W[t.id] !== undefined) return;
+  W[t.id] = null;
+  try {
+    let g;
+    for (const q of [t.dest, t.dest.split(',')[0]]) {
+      g = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q.trim())}&count=1&language=he`)).json();
+      if (g.results && g.results.length) break;
+    }
+    if (!g.results || !g.results.length) { W[t.id] = false; }
+    else {
+      const { latitude, longitude, name } = g.results[0];
+      const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`)).json();
+      W[t.id] = { temp: Math.round(w.current_weather.temperature), code: w.current_weather.weathercode, name };
+    }
+  } catch { W[t.id] = false; }
+  if (cur() && cur().id === t.id) renderHero();
+}
+
+/* ---------------------------- רינדור ראשי ---------------------------- */
+const TABS = [
+  ['itinerary', '🗓️ מסלול'], ['wishlist', '⭐ בנק רעיונות'], ['map', '🗺️ מפה'],
+  ['budget', '💰 תקציב ומט"ח'], ['docs', '📄 מסמכים'], ['packing', '🧳 ציוד'], ['journal', '📓 יומן']
+];
+
+function render() {
+  // בחירת טיול
+  const sel = $('#tripSelect');
+  sel.innerHTML = S.trips.length
+    ? S.trips.map(t => `<option value="${t.id}" ${t.id === S.currentId ? 'selected' : ''}>${esc(t.name)}</option>`).join('')
+    : '<option>אין טיולים עדיין</option>';
+  sel.disabled = !S.trips.length;
+
+  const t = cur();
+  if (!t) {
+    $('#app').innerHTML = `<div class="card welcome"><div class="big">🌍</div><h1>ברוך הבא למתכנן הטיולים</h1>
+      <p style="color:var(--muted)">צור את הטיול הראשון שלך כדי להתחיל לתכנן מסלול, תקציב, ציוד ועוד.</p>
+      <button class="btn" onclick="newTrip()">➕ יצירת טיול חדש</button></div>`;
+    return;
+  }
+
+  $('#app').innerHTML = `
+    <div class="hero" id="hero"></div>
+    <nav class="tabs no-print">${TABS.map(([k, l]) => `<button class="tab ${UI.tab === k ? 'active' : ''}" onclick="setTab('${k}')">${l}</button>`).join('')}</nav>
+    ${TABS.map(([k]) => `<section class="tabpane card panel ${UI.tab === k ? '' : 'hidden'}" id="pane-${k}"></section>`).join('')}`;
+  renderHero();
+  ({ itinerary: renderItinerary, wishlist: renderWishlist, map: renderMapTab, budget: renderBudget,
+     docs: renderDocs, packing: renderPacking, journal: renderJournal })[UI.tab](t);
+}
+function setTab(k) { UI.tab = k; render(); }
+
+function renderHero() {
+  const t = cur(); const el = $('#hero'); if (!t || !el) return;
+  const today = todayStr();
+  let cdBig, cdLbl;
+  if (!t.start) { cdBig = '—'; cdLbl = 'לא הוגדר תאריך'; }
+  else if (today < t.start) { const d = dayDiff(today, t.start); cdBig = d; cdLbl = d === 1 ? 'יום עד היציאה' : 'ימים עד היציאה'; }
+  else if (!t.end || today <= t.end) { cdBig = 'יום ' + (dayDiff(t.start, today) + 1); cdLbl = 'הטיול מתקיים עכשיו 🎉'; }
+  else { cdBig = '✔'; cdLbl = 'הטיול הסתיים'; }
+  const w = W[t.id];
+  let wHtml;
+  if (w) wHtml = `<div class="ico">${wIcon(w.code)}</div><div class="big">${w.temp}°</div><div class="lbl">${esc(w.name)} – עכשיו</div>`;
+  else if (w === false) wHtml = `<div class="ico">🌡️</div><div class="lbl">מזג אוויר לא זמין ליעד</div>`;
+  else { wHtml = `<div class="ico">⏳</div><div class="lbl">טוען מזג אוויר…</div>`; loadWeather(t); }
+  el.innerHTML = `
+    <div class="card hero-main"><h1>${esc(t.name)}</h1>
+      <div class="sub">📍 ${esc(t.dest)} &nbsp;•&nbsp; ${fmtShort(t.start)} – ${fmtShort(t.end)}${t.start && t.end ? ` (${dayDiff(t.start, t.end) + 1} ימים)` : ''}</div></div>
+    <div class="card widget"><div class="big">${cdBig}</div><div class="lbl">${cdLbl}</div></div>
+    <div class="card widget">${wHtml}</div>`;
+}
+
+/* ---------------------------- מסלול ---------------------------- */
+const actFields = (t) => [
+  { k: 'title', l: 'כותרת', req: true, full: true },
+  { k: 'date', l: 'תאריך', t: 'date', req: true, def: t.start },
+  { k: 'cat', l: 'קטגוריה', t: 'select', o: catOptions, def: 'attr' },
+  { k: 'start', l: 'שעת התחלה', t: 'time' },
+  { k: 'end', l: 'שעת סיום', t: 'time' },
+  { k: 'location', l: 'מיקום / כתובת', full: true, p: 'כתובת או שם מקום (לצורך המפה)' },
+  { k: 'price', l: 'מחיר (₪)', t: 'number', full: true },
+  { k: 'notes', l: 'הערות אישיות', t: 'textarea', full: true }
+];
+function addActivity(date) {
+  const t = cur();
+  openForm('פעילות חדשה', actFields(t), { date: date || t.start }, v => {
+    t.activities.push({ id: uid(), title: v.title, date: v.date, cat: v.cat, start: v.start, end: v.end,
+      location: v.location, price: num(v.price), notes: v.notes });
+    save();
+  });
+}
+function editActivity(id) {
+  const t = cur(); const a = t.activities.find(x => x.id === id); if (!a) return;
+  openForm('עריכת פעילות', actFields(t), a, v => {
+    if (v.location !== a.location) { delete a.lat; delete a.lng; delete a.geoFail; }
+    Object.assign(a, { title: v.title, date: v.date, cat: v.cat, start: v.start, end: v.end, location: v.location, price: num(v.price), notes: v.notes });
+    save();
+  });
+}
+function delActivity(id) {
+  if (!confirm('למחוק את הפעילות?')) return;
+  const t = cur(); t.activities = t.activities.filter(a => a.id !== id); save();
+}
+const sortActs = list => [...list].sort((a, b) =>
+  (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99') || (a.start || '99:99').localeCompare(b.start || '99:99'));
+
+function renderItinerary(t) {
+  const acts = sortActs(t.activities);
+  const groups = {};
+  acts.forEach(a => (groups[a.date || ''] = groups[a.date || ''] || []).push(a));
+  const dates = Object.keys(groups).sort((a, b) => (a || '9999').localeCompare(b || '9999'));
+  $('#pane-itinerary').innerHTML = `
+    <div class="print-head"><h1>${esc(t.name)}</h1><div>${esc(t.dest)} • ${fmtShort(t.start)} – ${fmtShort(t.end)}</div></div>
+    <div class="panel-head no-print"><h2>מסלול הטיול</h2>
+      <div><button class="btn ghost" onclick="printItinerary()">🖨️ ייצוא ל-PDF / הדפסה</button>
+      <button class="btn" onclick="addActivity()">➕ הוספת פעילות</button></div></div>
+    ${dates.length ? dates.map(d => {
+      const n = d && t.start ? dayDiff(t.start, d) + 1 : null;
+      return `<div class="day"><div class="day-head">${n && n > 0 ? `<span class="n">יום ${n}</span>` : ''}<span class="d">${fmtDate(d)}</span>
+        <button class="btn small ghost no-print" style="margin-inline-start:auto" onclick="addActivity('${d}')">➕</button></div>
+        ${groups[d].map(a => {
+          const c = cat(a.cat);
+          const time = a.start ? (a.end ? `${a.start} – ${a.end}` : a.start) : '';
+          return `<div class="act"><div class="time">${time || '&nbsp;'}</div><div class="emoji">${c.i}</div>
+            <div class="body"><div class="title">${esc(a.title)}</div>
+              <div class="meta">${esc(c.l)}${a.location ? ' • 📍 ' + esc(a.location) : ''}</div>
+              ${a.notes ? `<div class="notes">${esc(a.notes).replace(/\n/g, '<br>')}</div>` : ''}</div>
+            ${a.price ? `<div class="price">${ils(a.price)}</div>` : ''}
+            <div class="btns no-print"><button class="iconbtn" title="עריכה" onclick="editActivity('${a.id}')">✏️</button>
+              <button class="iconbtn" title="מחיקה" onclick="delActivity('${a.id}')">🗑️</button></div></div>`;
+        }).join('')}</div>`;
+    }).join('') : `<div class="empty"><div class="big">🗓️</div>עדיין אין פעילויות במסלול. הוסף את הראשונה!</div>`}`;
+}
+function printItinerary() { UI.tab = 'itinerary'; render(); setTimeout(() => window.print(), 150); }
+
+/* ---------------------------- בנק רעיונות ---------------------------- */
+const wishFields = [
+  { k: 'name', l: 'שם המקום', req: true, full: true },
+  { k: 'address', l: 'כתובת / מיקום', full: true, p: 'לצורך הצגה במפה' },
+  { k: 'notes', l: 'הערות', t: 'textarea', full: true }
+];
+function addWish() { openForm('רעיון חדש', wishFields, {}, v => { cur().wishlist.push({ id: uid(), name: v.name, address: v.address, notes: v.notes }); save(); }); }
+function editWish(id) {
+  const w = cur().wishlist.find(x => x.id === id);
+  openForm('עריכת רעיון', wishFields, w, v => {
+    if (v.address !== w.address) { delete w.lat; delete w.lng; delete w.geoFail; }
+    Object.assign(w, v); save();
+  });
+}
+function delWish(id) { if (!confirm('למחוק את הרעיון?')) return; const t = cur(); t.wishlist = t.wishlist.filter(x => x.id !== id); save(); }
+function renderWishlist(t) {
+  $('#pane-wishlist').innerHTML = `
+    <div class="panel-head"><h2>⭐ בנק רעיונות</h2><button class="btn" onclick="addWish()">➕ הוספת רעיון</button></div>
+    ${t.wishlist.length ? t.wishlist.map(w => `<div class="item"><div style="font-size:1.5rem">⭐</div>
+      <div class="body"><div class="title">${esc(w.name)}</div>
+        ${w.address ? `<div class="meta">📍 ${esc(w.address)}</div>` : ''}
+        ${w.notes ? `<div class="meta">${esc(w.notes).replace(/\n/g, '<br>')}</div>` : ''}</div>
+      <button class="iconbtn" onclick="editWish('${w.id}')">✏️</button><button class="iconbtn" onclick="delWish('${w.id}')">🗑️</button></div>`).join('')
+      : `<div class="empty"><div class="big">⭐</div>שמור כאן מקומות שתרצה לבקר בהם ועוד לא שובצו בלו"ז.<br>הם יופיעו במפה ככוכבים צהובים.</div>`}`;
+}
+
+/* ---------------------------- מפה ---------------------------- */
+let map = null, mapLayer = null, geoBusy = false;
+const DAY_COLORS = ['#1e6fe0', '#e0561e', '#1c9a5b', '#8a3fd1', '#d6a100', '#d6338a', '#0a9aa8'];
+function renderMapTab(t) {
+  const days = [...new Set(t.activities.map(a => a.date).filter(Boolean))].sort();
+  if (UI.mapDay !== 'all' && UI.mapDay !== 'ideas' && !days.includes(UI.mapDay)) UI.mapDay = 'all';
+  $('#pane-map').innerHTML = `
+    <div class="panel-head"><h2>🗺️ מפת הטיול</h2>
+      <select style="width:auto;min-width:200px" onchange="UI.mapDay=this.value;drawMap()">
+        <option value="all" ${UI.mapDay === 'all' ? 'selected' : ''}>כל הימים + רעיונות</option>
+        ${days.map((d, i) => `<option value="${d}" ${UI.mapDay === d ? 'selected' : ''}>יום ${t.start ? dayDiff(t.start, d) + 1 : i + 1} – ${fmtShort(d)}</option>`).join('')}
+        <option value="ideas" ${UI.mapDay === 'ideas' ? 'selected' : ''}>⭐ רעיונות בלבד</option>
+      </select></div>
+    <div id="map"></div><div class="map-status" id="mapStatus"></div>
+    <div class="meta" style="color:var(--muted);font-size:.9rem;margin-top:6px">📍 כחול – פעילויות במסלול &nbsp; ⭐ צהוב – בנק רעיונות &nbsp; הקו מחבר בין הפעילויות של כל יום לפי שעות.</div>`;
+  if (typeof L === 'undefined') { $('#mapStatus').textContent = 'ספריית המפה לא נטענה – בדוק חיבור לאינטרנט.'; return; }
+  map = L.map('map').setView([32.08, 34.78], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+  mapLayer = L.layerGroup().addTo(map);
+  setTimeout(() => { map.invalidateSize(); drawMap(true); geocodeMissing(); }, 60);
+}
+const pinIcon = e => L.divIcon({ html: `<div class="pin">${e}</div>`, className: '', iconSize: [28, 28], iconAnchor: [14, 26], popupAnchor: [0, -24] });
+function drawMap(fit = true) {
+  const t = cur(); if (!map || !t) return;
+  mapLayer.clearLayers();
+  const pts = [];
+  if (UI.mapDay !== 'ideas') {
+    const days = [...new Set(t.activities.map(a => a.date).filter(Boolean))].sort();
+    days.filter(d => UI.mapDay === 'all' || d === UI.mapDay).forEach((d, i) => {
+      const list = sortActs(t.activities.filter(a => a.date === d && a.lat !== undefined));
+      const color = DAY_COLORS[days.indexOf(d) % DAY_COLORS.length];
+      const line = [];
+      list.forEach(a => {
+        const ll = [a.lat, a.lng]; line.push(ll); pts.push(ll);
+        L.marker(ll, { icon: pinIcon('📍') }).addTo(mapLayer)
+          .bindPopup(`<b>${esc(a.title)}</b><br>${fmtShort(a.date)} ${a.start ? esc(a.start) : ''}<br>${esc(a.location)}`);
+      });
+      if (line.length > 1) L.polyline(line, { color, weight: 4, opacity: .75, dashArray: '8 6' }).addTo(mapLayer);
+    });
+  }
+  if (UI.mapDay === 'all' || UI.mapDay === 'ideas') {
+    t.wishlist.filter(w => w.lat !== undefined).forEach(w => {
+      const ll = [w.lat, w.lng]; pts.push(ll);
+      L.marker(ll, { icon: pinIcon('⭐') }).addTo(mapLayer).bindPopup(`<b>${esc(w.name)}</b><br>${esc(w.address)}`);
+    });
+  }
+  if (fit && pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 15 });
+}
+async function geocode(q, dest) {
+  for (const query of [dest ? `${q}, ${dest}` : q, q]) {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=he&q=' + encodeURIComponent(query));
+    const j = await r.json();
+    if (j[0]) return { lat: +j[0].lat, lng: +j[0].lon };
+    await new Promise(r => setTimeout(r, 1100));
+  }
+  return null;
+}
+async function geocodeMissing() {
+  if (geoBusy) return;
+  const t = cur(); if (!t) return;
+  const todo = [
+    ...t.activities.filter(a => a.location && a.lat === undefined && !a.geoFail).map(o => ({ o, q: o.location })),
+    ...t.wishlist.filter(w => (w.address || w.name) && w.lat === undefined && !w.geoFail).map(o => ({ o, q: o.address || o.name }))
+  ];
+  if (!todo.length) return;
+  geoBusy = true;
+  let n = 0;
+  for (const { o, q } of todo) {
+    if (UI.tab !== 'map' || cur() !== t) break;
+    const st = $('#mapStatus'); if (st) st.textContent = `מאתר כתובות במפה… (${++n}/${todo.length})`;
+    try {
+      const g = await geocode(q, t.dest);
+      if (g) { o.lat = g.lat; o.lng = g.lng; } else o.geoFail = true;
+    } catch { break; }
+    Storage.save(S); drawMap(false);
+    await new Promise(r => setTimeout(r, 1100));
+  }
+  geoBusy = false;
+  if (UI.tab !== 'map' || cur() !== t) return;
+  const st = $('#mapStatus');
+  if (st) { const failed = todo.filter(x => x.o.geoFail).length; st.textContent = failed ? `${failed} כתובות לא נמצאו – נסה לערוך אותן ולהוסיף עיר/מדינה.` : ''; }
+  drawMap(true);
+}
+
+/* ---------------------------- תקציב ומט"ח ---------------------------- */
+const expFields = [
+  { k: 'cat', l: 'קטגוריה', t: 'select', o: catOptions, def: 'food' },
+  { k: 'amount', l: 'סכום (₪)', t: 'number', req: true },
+  { k: 'desc', l: 'תיאור', full: true, p: 'לא חובה' },
+  { k: 'date', l: 'תאריך', t: 'date', def: todayStr(), full: true }
+];
+function addExpense() {
+  openForm('הוצאה חדשה', expFields, { date: todayStr() }, v => { cur().expenses.push({ id: uid(), cat: v.cat, amount: num(v.amount), desc: v.desc, date: v.date }); save(); });
+}
+function delExpense(id) { const t = cur(); t.expenses = t.expenses.filter(e => e.id !== id); save(); }
+
+const rateFetched = {};
+async function fetchRate(force) {
+  const t = cur(); if (!t) return;
+  const stale = !t.rate || Date.now() - (t.rateDate || 0) > 12 * 3600 * 1000;
+  if (!force && (!stale || rateFetched[t.id + t.currency])) return;
+  rateFetched[t.id + t.currency] = true;
+  try {
+    const j = await (await fetch(`https://open.er-api.com/v6/latest/${encodeURIComponent(t.currency)}`)).json();
+    if (j.result === 'success' && j.rates && j.rates.ILS) { t.rate = j.rates.ILS; t.rateDate = Date.now(); save(false); if (UI.tab === 'budget') renderBudget(t); }
+    else if (force) alert('לא הצלחתי למשוך שער. אפשר להזין שער ידנית.');
+  } catch { if (force) alert('אין חיבור לשרת שערי המטבע. אפשר להזין שער ידנית.'); }
+}
+function setRate(v) { const t = cur(); t.rate = num(v); t.rateDate = Date.now(); save(); }
+function fxFrom(v) { const t = cur(); const el = $('#fxIls'); if (el) el.value = v === '' ? '' : (num(v) * t.rate).toFixed(2); }
+function fxTo(v) { const t = cur(); const el = $('#fxFor2'); if (el) el.value = v === '' || !t.rate ? '' : (num(v) / t.rate).toFixed(2); }
+
+function renderBudget(t) {
+  const actSpent = t.activities.reduce((s, a) => s + (a.price || 0), 0);
+  const manual = t.expenses.reduce((s, e) => s + e.amount, 0);
+  const spent = actSpent + manual, total = t.budget || 0, left = total - spent;
+  const pct = total ? Math.min(100, spent / total * 100) : 0;
+  const byCat = CATS.map(c => ({ c, v: t.activities.filter(a => a.cat === c.k).reduce((s, a) => s + (a.price || 0), 0) + t.expenses.filter(e => e.cat === c.k).reduce((s, e) => s + e.amount, 0) })).filter(x => x.v > 0);
+  const rate = t.rate || 0;
+  const amounts = [5, 10, 20, 50, 100];
+  const rateInfo = t.rateDate ? `עודכן ${new Date(t.rateDate).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'לא עודכן';
+  const manualRows = t.expenses.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  $('#pane-budget').innerHTML = `
+    <div class="panel-head"><h2>💰 תקציב</h2><button class="btn" onclick="addExpense()">➕ הוספת הוצאה</button></div>
+    <div class="stats">
+      <div class="stat"><div class="v">${ils(total)}</div><div class="l">תקציב כולל</div></div>
+      <div class="stat"><div class="v">${ils(spent)}</div><div class="l">סך הוצאות</div></div>
+      <div class="stat"><div class="v ${left < 0 ? 'neg' : ''}">${ils(left)}</div><div class="l">${left < 0 ? 'חריגה מהתקציב' : 'יתרה נותרת'}</div></div>
+    </div>
+    <div class="bar ${left < 0 ? 'over' : ''}"><div style="width:${pct}%"></div></div>
+    ${byCat.length ? `<div class="chips">${byCat.map(x => `<span class="chip">${x.c.i} ${x.c.l}: ${ils(x.v)}</span>`).join('')}</div>` : ''}
+
+    <div class="sect-title">הוצאות</div>
+    ${manualRows.map(e => `<div class="item"><div style="font-size:1.4rem">${cat(e.cat).i}</div>
+      <div class="body"><div class="title">${esc(e.desc || cat(e.cat).l)}</div><div class="meta">${cat(e.cat).l}${e.date ? ' • ' + fmtShort(e.date) : ''}</div></div>
+      <div class="title" style="color:var(--blue-700)">${ils(e.amount)}</div><button class="iconbtn" onclick="delExpense('${e.id}')">🗑️</button></div>`).join('')}
+    ${sortActs(t.activities.filter(a => a.price > 0)).map(a => `<div class="item"><div style="font-size:1.4rem">${cat(a.cat).i}</div>
+      <div class="body"><div class="title">${esc(a.title)}<span class="badge">מהמסלול</span></div><div class="meta">${cat(a.cat).l}${a.date ? ' • ' + fmtShort(a.date) : ''}</div></div>
+      <div class="title" style="color:var(--blue-700)">${ils(a.price)}</div></div>`).join('')}
+    ${!manualRows.length && !actSpent ? '<div class="empty">עדיין אין הוצאות. מחירים של פעילויות במסלול יופיעו כאן אוטומטית.</div>' : ''}
+
+    <div class="sect-title">💱 מחשבון מט"ח (${esc(t.currency)} ↔ ₪)</div>
+    <div class="fx-box">
+      <div class="fx-line"><label>שער: 1 ${esc(t.currency)} =</label>
+        <input type="number" step="any" min="0" value="${rate ? rate.toFixed(4) : ''}" placeholder="הזן שער" onchange="setRate(this.value)" style="max-width:150px"> ₪
+        <button class="btn small ghost" onclick="fetchRate(true)">🔄 עדכון שער</button>
+        <span style="color:var(--muted);font-size:.85rem">${rateInfo}</span></div>
+      <div class="two">
+        <div class="fx-line"><label>מ-${esc(t.currency)} לשקלים</label><input id="fxFor" type="number" step="any" min="0" placeholder="${esc(t.currency)}" oninput="fxFrom(this.value)">
+          <span>=</span><input id="fxIls" type="number" readonly placeholder="₪"></div>
+        <div class="fx-line"><label>משקלים ל-${esc(t.currency)}</label><input id="fxIlsIn" type="number" step="any" min="0" placeholder="₪" oninput="fxTo(this.value)">
+          <span>=</span><input id="fxFor2" type="number" readonly placeholder="${esc(t.currency)}"></div>
+      </div>
+    </div>
+    <div class="sect-title">🏷️ מחירון מהיר לקניות</div>
+    ${rate ? `<div class="two">
+      <table><tr><th>${esc(t.currency)}</th><th>₪</th></tr>${amounts.map(a => `<tr><td>${a}</td><td>${(a * rate).toFixed(1)}</td></tr>`).join('')}</table>
+      <table><tr><th>₪</th><th>${esc(t.currency)}</th></tr>${amounts.map(a => `<tr><td>${a}</td><td>${(a / rate).toFixed(2)}</td></tr>`).join('')}</table></div>`
+      : '<div class="empty">הזן שער המרה (או לחץ "עדכון שער") כדי לראות את הטבלה.</div>'}`;
+  fetchRate(false);
+}
+
+/* ---------------------------- מסמכים ---------------------------- */
+const docFields = [
+  { k: 'title', l: 'שם המסמך', req: true, full: true, p: 'למשל: טיסה לפראג – אל על' },
+  { k: 'cat', l: 'קטגוריה', t: 'select', o: DOC_CATS.map(c => [c.k, c.l]), def: 'flight' },
+  { k: 'ref', l: 'מספר אישור / Booking Ref', p: 'ABC123' },
+  { k: 'url', l: 'קישור לקובץ או למסמך', full: true, p: 'https://…' },
+  { k: 'notes', l: 'הערות', t: 'textarea', full: true }
+];
+function addDoc() { openForm('מסמך חדש', docFields, { cat: UI.docFilter !== 'all' ? UI.docFilter : 'flight' }, v => { cur().docs.push({ id: uid(), ...v }); save(); }); }
+function editDoc(id) { const d = cur().docs.find(x => x.id === id); openForm('עריכת מסמך', docFields, d, v => { Object.assign(d, v); save(); }); }
+function delDoc(id) { if (!confirm('למחוק את המסמך?')) return; const t = cur(); t.docs = t.docs.filter(x => x.id !== id); save(); }
+function setDocFilter(k) { UI.docFilter = k; renderDocs(cur()); }
+const safeUrl = u => /^https?:\/\//i.test(u) ? u : (u ? 'https://' + u : '');
+function renderDocs(t) {
+  const list = t.docs.filter(d => UI.docFilter === 'all' || d.cat === UI.docFilter);
+  $('#pane-docs').innerHTML = `
+    <div class="panel-head"><h2>📄 מסמכים ואישורים</h2><button class="btn" onclick="addDoc()">➕ הוספת מסמך</button></div>
+    <div class="chips"><span class="chip ${UI.docFilter === 'all' ? 'active' : ''}" onclick="setDocFilter('all')">הכול</span>
+      ${DOC_CATS.map(c => `<span class="chip ${UI.docFilter === c.k ? 'active' : ''}" onclick="setDocFilter('${c.k}')">${c.l}</span>`).join('')}</div>
+    ${list.length ? list.map(d => `<div class="item"><div class="body"><div class="title">${esc(d.title)}<span class="badge">${(DOC_CATS.find(c => c.k === d.cat) || DOC_CATS[5]).l}</span></div>
+      ${d.ref ? `<div class="meta">מספר אישור: <b dir="ltr" style="user-select:all">${esc(d.ref)}</b></div>` : ''}
+      ${d.url ? `<div class="meta"><a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener">🔗 פתיחת המסמך</a></div>` : ''}
+      ${d.notes ? `<div class="meta">${esc(d.notes).replace(/\n/g, '<br>')}</div>` : ''}</div>
+      <button class="iconbtn" onclick="editDoc('${d.id}')">✏️</button><button class="iconbtn" onclick="delDoc('${d.id}')">🗑️</button></div>`).join('')
+      : `<div class="empty"><div class="big">📄</div>אין מסמכים בקטגוריה הזו.</div>`}`;
+}
+
+/* ---------------------------- ציוד ---------------------------- */
+const packFields = [
+  { k: 'name', l: 'פריט', req: true, full: true },
+  { k: 'cat', l: 'קטגוריה', req: true, full: true, list: 'dlPack', p: 'אלקטרוניקה, ביגוד, מסמכים…' }
+];
+function addPack() {
+  const t = cur();
+  $('#dlPack').innerHTML = [...new Set(['אלקטרוניקה', 'ביגוד', 'מסמכים', 'תרופות והיגיינה', ...t.packing.map(p => p.cat)])].map(c => `<option value="${esc(c)}">`).join('');
+  openForm('פריט חדש', packFields, {}, v => { t.packing.push({ id: uid(), name: v.name, cat: v.cat || 'כללי', done: false }); save(); });
+}
+function togglePack(id) { const p = cur().packing.find(x => x.id === id); p.done = !p.done; save(); }
+function delPack(id) { const t = cur(); t.packing = t.packing.filter(x => x.id !== id); save(); }
+function renderPacking(t) {
+  const cats = [...new Set(t.packing.map(p => p.cat))];
+  const done = t.packing.filter(p => p.done).length;
+  $('#pane-packing').innerHTML = `
+    <div class="panel-head"><h2>🧳 רשימת ציוד</h2><div>${t.packing.length ? `<span class="badge">${done}/${t.packing.length} נארזו</span> ` : ''}<button class="btn" onclick="addPack()">➕ הוספת פריט</button></div></div>
+    ${t.packing.length ? `<div class="bar"><div style="width:${done / t.packing.length * 100}%"></div></div>` : ''}
+    ${cats.length ? cats.map(c => `<div class="pack-cat"><h3>${esc(c)}</h3>${t.packing.filter(p => p.cat === c).map(p => `
+      <div class="pack-item ${p.done ? 'done' : ''}"><input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePack('${p.id}')">
+        <span class="t">${esc(p.name)}</span><button class="iconbtn" onclick="delPack('${p.id}')">🗑️</button></div>`).join('')}</div>`).join('')
+      : `<div class="empty"><div class="big">🧳</div>הרשימה ריקה. הוסף פריטים ושייך אותם לקטגוריות.</div>`}`;
+}
+
+/* ---------------------------- יומן ---------------------------- */
+const jFields = [
+  { k: 'date', l: 'תאריך', t: 'date', req: true, full: true },
+  { k: 'text', l: 'מה עבר עליך היום?', t: 'textarea', req: true, full: true }
+];
+function addJournal() { openForm('רשומה חדשה', jFields, { date: todayStr() }, v => { cur().journal.push({ id: uid(), date: v.date, text: v.text }); save(); }); }
+function editJournal(id) { const j = cur().journal.find(x => x.id === id); openForm('עריכת רשומה', jFields, j, v => { Object.assign(j, v); save(); }); }
+function delJournal(id) { if (!confirm('למחוק את הרשומה?')) return; const t = cur(); t.journal = t.journal.filter(x => x.id !== id); save(); }
+function renderJournal(t) {
+  $('#pane-journal').innerHTML = `
+    <div class="panel-head"><h2>📓 יומן חוויות</h2><button class="btn" onclick="addJournal()">➕ רשומה חדשה</button></div>
+    ${t.journal.length ? t.journal.slice().sort((a, b) => b.date.localeCompare(a.date)).map(j => `<div class="item"><div style="font-size:1.5rem">📝</div>
+      <div class="body"><div class="title">${fmtDate(j.date)}</div><div style="white-space:pre-wrap;margin-top:4px">${esc(j.text)}</div></div>
+      <button class="iconbtn" onclick="editJournal('${j.id}')">✏️</button><button class="iconbtn" onclick="delJournal('${j.id}')">🗑️</button></div>`).join('')
+      : `<div class="empty"><div class="big">📓</div>תעד כאן חוויות וזיכרונות מהטיול.</div>`}`;
+}
+
+/* ---------------------------- גשר לסנכרון הענן ---------------------------- */
+window.App = {
+  getLocal: () => S,
+  applyRemote(d) {
+    if (!$('#modal').classList.contains('hidden')) return false;   // לא מחליפים נתונים בזמן עריכה
+    S = d && Array.isArray(d.trips) ? d : { trips: [], currentId: null };
+    if (!cur() && S.trips.length) S.currentId = S.trips[0].id;
+    localStorage.setItem(Storage.KEY, JSON.stringify(S));
+    render();
+    return true;
+  }
+};
+
+/* ---------------------------- התחלה ---------------------------- */
+if (!cur() && S.trips.length) S.currentId = S.trips[0].id;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+render();
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAM1OyCrQNq_Tq9xDjGqm3gS3_Io58FB-c",
+  authDomain: "tripapp-a5062.firebaseapp.com",
+  projectId: "tripapp-a5062",
+  storageBucket: "tripapp-a5062.firebasestorage.app",
+  messagingSenderId: "657829610951",
+  appId: "1:657829610951:web:cc1b1033f50706971485e2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const q = s => document.querySelector(s);
+
+let uid = null, unsub = null, timer = null, lastRev = 0;
+const ref = () => doc(db, 'users', uid);          // מסמך אחד לכל משתמש: users/<uid>
+
+function status(t, bad) { const el = q('#cloudStatus'); el.textContent = t; el.style.color = bad ? '#ffb4b4' : '#fff'; }
+function showLogin(msg) {
+  q('#login').classList.remove('hidden');
+  q('#loginBtn').classList.remove('hidden');
+  q('#loginMsg').textContent = msg || 'התחבר כדי לגשת לטיולים שלך מכל מכשיר.';
+}
+function hideLogin() { q('#login').classList.add('hidden'); }
+
+async function write(data) {
+  const rev = Date.now(); lastRev = rev;
+  await setDoc(ref(), { json: JSON.stringify(data), rev });
+}
+function queueSave(data) {
+  if (!uid) return;
+  status('☁️ שומר…'); clearTimeout(timer);
+  timer = setTimeout(async () => {
+    try { await write(data); status('☁️ מסונכרן'); }
+    catch (e) { console.error(e); status('⚠️ השמירה בענן נכשלה', true); }
+  }, 700);
+}
+
+onAuthStateChanged(auth, async user => {
+  clearTimeout(window.__loginTimeout);
+  if (unsub) { unsub(); unsub = null; }
+  if (!user) { uid = null; q('#userBox').classList.add('hidden'); showLogin(); return; }
+  uid = user.uid; hideLogin();
+  q('#userEmail').textContent = user.email || '';
+  q('#userBox').classList.remove('hidden');
+  status('☁️ מתחבר…');
+  try {
+    const snap = await getDoc(ref());
+    const local = App.getLocal();
+    if (!snap.exists()) {
+      await write(local);                                   // פעם ראשונה: מעלים את מה שיש במכשיר
+    } else {
+      const d = snap.data(); const remote = JSON.parse(d.json); lastRev = d.rev || 0;
+      if (local.trips && local.trips.length && JSON.stringify(local) !== JSON.stringify(remote))
+        localStorage.setItem('tripPlannerV1_localBackup', JSON.stringify(local));   // גיבוי למקרה שהמכשיר הכיל נתונים אחרים
+      App.applyRemote(remote);
+    }
+    status('☁️ מסונכרן');
+    unsub = onSnapshot(ref(), s => {                        // עדכון חי ממכשירים אחרים
+      if (!s.exists() || s.metadata.hasPendingWrites) return;
+      const d = s.data(); if (!d.rev || d.rev === lastRev) return;
+      try { if (App.applyRemote(JSON.parse(d.json))) { lastRev = d.rev; status('☁️ מסונכרן'); } } catch (e) { console.error(e); }
+    }, err => { console.error(err); status('⚠️ שגיאת סנכרון', true); });
+  } catch (e) {
+    console.error(e);
+    status('⚠️ שגיאה בסנכרון', true);
+    if (e.code === 'permission-denied') alert('אין הרשאה לנתונים. בדוק שהמייל בחוקי האבטחה של Firestore זהה לחשבון Google שאיתו התחברת.');
+  }
+});
+
+async function login() {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) {
+    const m = {
+      'auth/popup-closed-by-user': '',
+      'auth/cancelled-popup-request': '',
+      'auth/popup-blocked': 'הדפדפן חסם את חלון ההתחברות. אפשר חלונות קופצים לאתר ונסה שוב.',
+      'auth/unauthorized-domain': 'כתובת האתר עוד לא אושרה ב-Firebase (Authentication ← Settings ← Authorized domains).',
+      'auth/operation-not-allowed': 'התחברות עם Google לא הופעלה ב-Firebase (Authentication ← Sign-in method).'
+    };
+    q('#loginMsg').textContent = e.code in m ? m[e.code] : 'ההתחברות נכשלה: ' + (e.code || e.message);
+  }
+}
+async function logout() {
+  clearTimeout(timer);
+  await signOut(auth);
+  App.applyRemote({ trips: [], currentId: null });          // מנקים את המטמון המקומי במכשיר
+}
+function skip() { hideLogin(); }
+
+window.Cloud = { queueSave, login, logout, skip };
+
+if (location.protocol === 'file:') {
+  showLogin('האתר נפתח כקובץ מהמחשב, ולכן התחברות עם Google לא תעבוד. אחרי שמעלים אותו לכתובת אינטרנט זה יעבוד. בינתיים אפשר להמשיך במצב מקומי.');
+} else {
+  window.__loginTimeout = setTimeout(() => showLogin('לא הצלחתי להתחבר ל-Firebase. בדוק חיבור לאינטרנט, או המשך במצב מקומי.'), 8000);
+}
+</script>
+</body>
+</html>
